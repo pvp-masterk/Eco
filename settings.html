@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f0f2f5;
+      padding: 40px;
+    }
+    .settings-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    .btn {
+      padding: 10px 20px;
+      background-color: #4361ee;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .badge {
+      display: inline-block;
+      margin-right: 10px;
+      padding: 8px 12px;
+      border-radius: 50px;
+      background: #eee;
+      font-size: 20px;
+      position: relative;
+      cursor: pointer;
+    }
+    .badge:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: black;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <h2>Settings</h2>
+
+    <div class="form-group">
+      <label for="username-input">Change Username</label>
+      <input type="text" id="username-input" placeholder="Enter new username">
+    </div>
+
+    <button class="btn" onclick="updateUsername()">Update Username</button>
+
+    <hr style="margin: 30px 0;">
+
+    <h3>Your Badges</h3>
+    <div id="badge-container">
+      <!-- Badges will be added here -->
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = 'https://rdomgvvjbjfrvkbhjxds.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkb21ndnZqYmpmcnZrYmhqeGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjY5NTEsImV4cCI6MjA2OTIwMjk1MX0.3CMfwZ_HocNzkyvuYjvFL3lypZX2JL2kXvk3kL5AB54'; // Replace with real key
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    let user = null;
+    let userData = null;
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      user = session.user;
+      const { data, error } = await supabase.from('users').select('*').eq('user_id', user.id).single();
+      if (!error) {
+        userData = data.data;
+        document.getElementById('username-input').value = userData.username || '';
+        renderBadges(userData);
+      }
+    }
+
+    async function updateUsername() {
+      const newUsername = document.getElementById('username-input').value;
+      if (!newUsername) return alert('Username cannot be empty');
+      userData.username = newUsername;
+      await supabase.from('users').update({ data: userData }).eq('user_id', user.id);
+      alert('Username updated!');
+    }
+
+    function renderBadges(data) {
+      const container = document.getElementById('badge-container');
+      container.innerHTML = '';
+
+      if (data.streak && data.streak >= 1) {
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = '🔥';
+        badge.setAttribute('data-tooltip', `${data.streak} day streak`);
+        container.appendChild(badge);
+      }
+
+      if (data.joinIndex !== undefined) {
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = '#';
+        badge.setAttribute('data-tooltip', `#${ordinal(data.joinIndex)} user to join`);
+        container.appendChild(badge);
+      }
+    }
+
+    function ordinal(n) {
+      const s = ["th", "st", "nd", "rd"], v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
