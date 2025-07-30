@@ -88,16 +88,19 @@
   <script>
     const supabaseUrl = 'https://rdomgvvjbjfrvkbhjxds.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkb21ndnZqYmpmcnZrYmhqeGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjY5NTEsImV4cCI6MjA2OTIwMjk1MX0.3CMfwZ_HocNzkyvuYjvFL3lypZX2JL2kXvk3kL5AB54'; // Replace with real key
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const { createClient } = supabase;
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+
 
     let user = null;
     let userData = null;
 
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) return;
       user = session.user;
-      const { data, error } = await supabase.from('users').select('*').eq('user_id', user.id).single();
+      const { data, error } = await supabaseClient.from('users').select('*').eq('user_id', user.id).single();
       if (!error) {
         userData = data.data;
         document.getElementById('username-input').value = userData.username || '';
@@ -109,7 +112,7 @@
       const newUsername = document.getElementById('username-input').value;
       if (!newUsername) return alert('Username cannot be empty');
       userData.username = newUsername;
-      await supabase.from('users').update({ data: userData }).eq('user_id', user.id);
+      await supabaseClient.from('users').update({ data: userData }).eq('user_id', user.id);
       alert('Username updated!');
     }
 
