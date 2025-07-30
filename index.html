@@ -919,6 +919,24 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
         
         // Load user data from Supabase
         async function loadUserData() {
+
+// Get number of users who joined before
+const { count } = await supabaseClient
+  .from('users')
+  .select('*', { count: 'exact', head: true });
+
+const newUser = {
+  user_id: user.id,
+  email: user.email,
+  data: {
+    ...userData,
+    joinIndex: count + 1 // e.g., user #5
+  }
+};
+
+await supabaseClient.from('users').insert([newUser]);
+
+            
             // Check if user data exists
             const { data: existingData, error: fetchError } = await supabaseClient
                 .from('users')
