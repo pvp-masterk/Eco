@@ -702,6 +702,26 @@
                                     <!-- Items will be loaded here -->
                                 </div>
                             </div>
+
+                            <div id="leaderboard-section" class="hidden">
+  <div class="container">
+    <h2 class="section-title"><i class="fas fa-trophy"></i> Leaderboard</h2>
+    <table id="leaderboard-table" style="width:100%; text-align:left;">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Net Worth</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+
+
+                            
                         </div>
                         
                         <div id="coin-flip-section" class="hidden">
@@ -1229,7 +1249,41 @@ await supabaseClient.from('users').insert([newUser]);
                 notification.classList.remove('show');
             }, 5000);
         }
-        
+
+
+        async function loadLeaderboard() {
+  const { data: users, error } = await supabaseClient
+    .from('users')
+    .select('email, data')
+    .order('data->netWorth', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error('Error loading leaderboard:', error);
+    return;
+  }
+
+  const tbody = document.querySelector('#leaderboard-table tbody');
+  tbody.innerHTML = '';
+
+  users.forEach((userRow, index) => {
+    const username = userRow.data?.username || userRow.email;
+    const netWorth = userRow.data?.netWorth || 0;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${username}</td>
+      <td>$${Number(netWorth).toLocaleString()}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+document.querySelector('[data-section="leaderboard"]').addEventListener('click', () => {
+  showSection('leaderboard');
+  loadLeaderboard();
+});
+
         // Initialize the app when DOM is loaded
         document.addEventListener('DOMContentLoaded', init);
     </script>
