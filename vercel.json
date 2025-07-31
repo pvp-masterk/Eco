@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/$1.html"
-    }
+    { "source": "/(index|settings)", "destination": "/$1.html" },
+    { "source": "/(.*)", "destination": "/profile.html" }
   ]
 }
