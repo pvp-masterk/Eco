@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Settings</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     body {
@@ -63,39 +64,41 @@
       font-size: 12px;
       white-space: nowrap;
     }
+    .avatar-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="settings-container">
     <h2>Settings</h2>
-<div class="form-group">
-  <label for="avatar-input">Upload Profile Picture</label>
-  <input type="file" id="avatar-input" accept="image/*">
-</div>
 
     <div class="form-group">
       <label for="username-input">Change Username</label>
       <input type="text" id="username-input" placeholder="Enter new username">
     </div>
 
-    <button class="btn" onclick="updateUsername()">Update Username</button>
+    <div class="form-group">
+      <label for="avatar-input">Upload Profile Picture</label>
+      <input type="file" id="avatar-input" accept="image/*">
+      <img id="avatar-preview" class="avatar-preview" src="" alt="Avatar Preview">
+    </div>
+
+    <button class="btn" onclick="updateProfile()">Save Settings</button>
 
     <hr style="margin: 30px 0;">
 
     <h3>Your Badges</h3>
-    <div id="badge-container">
-      <!-- Badges will be added here -->
-    </div>
+    <div id="badge-container"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const supabaseUrl = 'https://rdomgvvjbjfrvkbhjxds.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkb21ndnZqYmpmcnZrYmhqeGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjY5NTEsImV4cCI6MjA2OTIwMjk1MX0.3CMfwZ_HocNzkyvuYjvFL3lypZX2JL2kXvk3kL5AB54'; // Replace with real key
     const { createClient } = supabase;
-const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
-
+    const supabaseClient = createClient('https://rdomgvvjbjfrvkbhjxds.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkb21ndnZqYmpmcnZrYmhqeGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjY5NTEsImV4cCI6MjA2OTIwMjk1MX0.3CMfwZ_HocNzkyvuYjvFL3lypZX2JL2kXvk3kL5AB54');
 
     let user = null;
     let userData = null;
@@ -104,48 +107,53 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) return;
       user = session.user;
+
       const { data, error } = await supabaseClient.from('users').select('*').eq('user_id', user.id).single();
       if (!error) {
         userData = data.data;
         document.getElementById('username-input').value = userData.username || '';
+        if (userData.avatar_url) {
+          document.getElementById('avatar-preview').src = userData.avatar_url;
+        }
         renderBadges(userData);
       }
     }
 
-    async function updateUsername() {
-  const newUsername = document.getElementById('username-input').value;
-  const avatarFile = document.getElementById('avatar-input').files[0];
+    async function updateProfile() {
+      const newUsername = document.getElementById('username-input').value;
+      const avatarFile = document.getElementById('avatar-input').files[0];
 
-  if (!newUsername) return alert('Username cannot be empty');
+      if (!newUsername) return alert('Username cannot be empty');
+      userData.username = newUsername;
 
-  if (avatarFile) {
-    const fileExt = avatarFile.name.split('.').pop();
-    const filePath = `${user.id}.${fileExt}`;
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop();
+        const filePath = `avatars/${user.id}.${ext}`;
 
-    const { error: uploadError } = await supabaseClient.storage
-      .from('avatars')
-      .upload(filePath, avatarFile, { upsert: true });
+        const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(filePath, avatarFile, { upsert: true });
+        if (uploadError) {
+          console.error(uploadError);
+          alert('Error uploading avatar');
+          return;
+        }
 
-    if (uploadError) {
-      alert('Error uploading image');
-      console.error(uploadError);
-      return;
+        const { data: urlData } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
+        userData.avatar_url = urlData.publicUrl;
+        document.getElementById('avatar-preview').src = urlData.publicUrl;
+      }
+
+      const { error: updateError } = await supabaseClient
+        .from('users')
+        .update({ data: userData })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error(updateError);
+        alert('Failed to update profile');
+      } else {
+        alert('Profile updated!');
+      }
     }
-
-    const { data } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
-    userData.avatar_url = data.publicUrl;
-  }
-
-  userData.username = newUsername;
-
-  await supabaseClient
-    .from('users')
-    .update({ data: userData })
-    .eq('user_id', user.id);
-
-  alert('Profile updated!');
-}
-
 
     function renderBadges(data) {
       const container = document.getElementById('badge-container');
