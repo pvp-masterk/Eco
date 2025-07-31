@@ -58,59 +58,59 @@
     </div>
   </div>
 
-  <script>
-    const supabase = supabase.createClient(
-      'https://rdomgvvjbjfrvkbhjxds.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkb21ndnZqYmpmcnZrYmhqeGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjY5NTEsImV4cCI6MjA2OTIwMjk1MX0.3CMfwZ_HocNzkyvuYjvFL3lypZX2JL2kXvk3kL5AB54' // Replace with actual key
-    );
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = supabase;
+  const supabaseClient = createClient(
+    'https://rdomgvvjbjfrvkbhjxds.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkb21ndnZqYmpmcnZrYmhqeGRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjY5NTEsImV4cCI6MjA2OTIwMjk1MX0.3CMfwZ_HocNzkyvuYjvFL3lypZX2JL2kXvk3kL5AB54' // Replace this with your real anon key
+  );
 
-    const path = window.location.pathname;
-    const username = path.split('/').pop();
+  const path = window.location.pathname;
+  const username = path.split('/').pop();
 
-    async function loadProfile() {
-      // Get user by username
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('email, data')
-        .eq('data->>username', username)
-        .limit(1);
+  async function loadProfile() {
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('email, data')
+      .eq('data->>username', username)
+      .limit(1);
 
-      if (error || !users || users.length === 0) {
-        document.body.innerHTML = '<h1>User not found</h1>';
-        return;
-      }
-
-      const user = users[0];
-      const userData = user.data;
-      document.getElementById('username').textContent = `@${userData.username}`;
-      document.getElementById('balance').textContent = `$${userData.balance.toLocaleString()}`;
-      document.getElementById('net-worth').textContent = `$${userData.netWorth.toLocaleString()}`;
-
-      // Load leaderboard rank
-      const { data: allUsers } = await supabase
-        .from('users')
-        .select('data')
-        .order('data->netWorth', { ascending: false });
-
-      const rank = allUsers.findIndex(u => u.data.username === username) + 1;
-      document.getElementById('rank').textContent = `🏆 Rank #${rank}`;
-
-      // Render inventory
-      const inventory = userData.inventory || [];
-      const portfolioEl = document.getElementById('portfolio');
-      if (inventory.length === 0) {
-        portfolioEl.textContent = 'No items yet.';
-      } else {
-        inventory.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'item';
-          div.textContent = `${item.image || ''} ${item.name} - $${item.price.toLocaleString()}`;
-          portfolioEl.appendChild(div);
-        });
-      }
+    if (error || !users || users.length === 0) {
+      document.body.innerHTML = '<h1>User not found</h1>';
+      return;
     }
 
-    loadProfile();
-  </script>
+    const user = users[0];
+    const userData = user.data;
+
+    document.getElementById('username').textContent = `@${userData.username}`;
+    document.getElementById('balance').textContent = `$${userData.balance.toLocaleString()}`;
+    document.getElementById('net-worth').textContent = `$${userData.netWorth.toLocaleString()}`;
+
+    const { data: allUsers } = await supabaseClient
+      .from('users')
+      .select('data')
+      .order('data->netWorth', { ascending: false });
+
+    const rank = allUsers.findIndex(u => u.data.username === username) + 1;
+    document.getElementById('rank').textContent = `🏆 Rank #${rank}`;
+
+    const inventory = userData.inventory || [];
+    const portfolioEl = document.getElementById('portfolio');
+    if (inventory.length === 0) {
+      portfolioEl.textContent = 'No items yet.';
+    } else {
+      inventory.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = `${item.image || ''} ${item.name} - $${item.price.toLocaleString()}`;
+        portfolioEl.appendChild(div);
+      });
+    }
+  }
+
+  loadProfile();
+</script>
 </body>
 </html>
