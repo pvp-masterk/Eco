@@ -68,6 +68,10 @@
 <body>
   <div class="settings-container">
     <h2>Settings</h2>
+<div class="form-group">
+  <label for="avatar-input">Upload Profile Picture</label>
+  <input type="file" id="avatar-input" accept="image/*">
+</div>
 
     <div class="form-group">
       <label for="username-input">Change Username</label>
@@ -109,12 +113,39 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
     }
 
     async function updateUsername() {
-      const newUsername = document.getElementById('username-input').value;
-      if (!newUsername) return alert('Username cannot be empty');
-      userData.username = newUsername;
-      await supabaseClient.from('users').update({ data: userData }).eq('user_id', user.id);
-      alert('Username updated!');
+  const newUsername = document.getElementById('username-input').value;
+  const avatarFile = document.getElementById('avatar-input').files[0];
+
+  if (!newUsername) return alert('Username cannot be empty');
+
+  if (avatarFile) {
+    const fileExt = avatarFile.name.split('.').pop();
+    const filePath = `${user.id}.${fileExt}`;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from('avatars')
+      .upload(filePath, avatarFile, { upsert: true });
+
+    if (uploadError) {
+      alert('Error uploading image');
+      console.error(uploadError);
+      return;
     }
+
+    const { data } = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
+    userData.avatar_url = data.publicUrl;
+  }
+
+  userData.username = newUsername;
+
+  await supabaseClient
+    .from('users')
+    .update({ data: userData })
+    .eq('user_id', user.id);
+
+  alert('Profile updated!');
+}
+
 
     function renderBadges(data) {
       const container = document.getElementById('badge-container');
